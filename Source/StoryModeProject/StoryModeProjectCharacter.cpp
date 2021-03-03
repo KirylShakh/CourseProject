@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "StoryModeProjectCharacter.h"
+
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -8,6 +9,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Net/UnrealNetwork.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AStoryModeProjectCharacter
@@ -47,6 +49,11 @@ AStoryModeProjectCharacter::AStoryModeProjectCharacter()
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 }
 
+void AStoryModeProjectCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -54,42 +61,70 @@ void AStoryModeProjectCharacter::SetupPlayerInputComponent(class UInputComponent
 {
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	PlayerInputComponent->BindAxis("MoveForward", this, &AStoryModeProjectCharacter::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &AStoryModeProjectCharacter::MoveRight);
+	if (GetLocalRole() >= ENetRole::ROLE_AutonomousProxy)
+	{
+		{
+			FInputActionHandlerSignature ActionHandler;
+			ActionHandler.BindUFunction(this, TEXT("OnDash"), EAxis::X, DashVelocity);
+			AddInputActionBinding(ActionHandler, TEXT("DashForward"));
+		}
 
-	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
-	// "turn" handles devices that provide an absolute delta, such as a mouse.
-	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("TurnRate", this, &AStoryModeProjectCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-	PlayerInputComponent->BindAxis("LookUpRate", this, &AStoryModeProjectCharacter::LookUpAtRate);
+		{
+			FInputActionHandlerSignature ActionHandler;
+			ActionHandler.BindUFunction(this, TEXT("OnDash"), EAxis::X, -DashVelocity);
+			AddInputActionBinding(ActionHandler, TEXT("DashBack"));
+		}
 
-	// handle touch devices
-	PlayerInputComponent->BindTouch(IE_Pressed, this, &AStoryModeProjectCharacter::TouchStarted);
-	PlayerInputComponent->BindTouch(IE_Released, this, &AStoryModeProjectCharacter::TouchStopped);
+		PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AStoryModeProjectCharacter::OnJump);
+		PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	// VR headset functionality
-	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AStoryModeProjectCharacter::OnResetVR);
+		PlayerInputComponent->BindAxis("MoveForward", this, &AStoryModeProjectCharacter::OnMoveForward);
+		PlayerInputComponent->BindAxis("MoveRight", this, &AStoryModeProjectCharacter::OnMoveRight);
+		PlayerInputComponent->BindAxis("MoveUp", this, &AStoryModeProjectCharacter::OnMoveUp);
+
+		// Don't support anything but PC but let it be here for a while
+		// We have 2 versions of the rotation bindings to handle different kinds of devices differently
+		// "turn" handles devices that provide an absolute delta, such as a mouse.
+		// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
+		PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+		PlayerInputComponent->BindAxis("TurnRate", this, &AStoryModeProjectCharacter::TurnAtRate);
+		PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+		PlayerInputComponent->BindAxis("LookUpRate", this, &AStoryModeProjectCharacter::LookUpAtRate);
+
+		// handle touch devices
+		PlayerInputComponent->BindTouch(IE_Pressed, this, &AStoryModeProjectCharacter::TouchStarted);
+		PlayerInputComponent->BindTouch(IE_Released, this, &AStoryModeProjectCharacter::TouchStopped);
+
+		// VR headset functionality
+		PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AStoryModeProjectCharacter::OnResetVR);
+	}
 }
 
-
-void AStoryModeProjectCharacter::OnResetVR()
+void AStoryModeProjectCharacter::AddInputActionBinding(FInputActionHandlerSignature& Handler, FName ActionName)
 {
-	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
+	FInputActionBinding ActionBinding = FInputActionBinding(ActionName, IE_Pressed);
+	ActionBinding.ActionDelegate = Handler;
+
+	InputComponent->AddActionBinding(ActionBinding);
 }
 
-void AStoryModeProjectCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
+void AStoryModeProjectCharacter::Server_ToggleFlyingMode_Implementation()
 {
-		Jump();
-}
-
-void AStoryModeProjectCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
-{
-		StopJumping();
+	UCharacterMovementComponent* CharacterMovementComponent = Cast<UCharacterMovementComponent>(GetMovementComponent());
+	if (CharacterMovementComponent)
+	{
+		// Check for 2nd time press so we are moved into flying mode
+		if (CharacterMovementComponent->IsFalling())
+		{
+			CharacterMovementComponent->SetMovementMode(EMovementMode::MOVE_Flying);
+		}
+		// If already if fly mode switch to fall again
+		else if (CharacterMovementComponent->IsFlying())
+		{
+			CharacterMovementComponent->SetMovementMode(EMovementMode::MOVE_Falling);
+		}
+	}
 }
 
 void AStoryModeProjectCharacter::TurnAtRate(float Rate)
@@ -104,31 +139,94 @@ void AStoryModeProjectCharacter::LookUpAtRate(float Rate)
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
-void AStoryModeProjectCharacter::MoveForward(float Value)
+void AStoryModeProjectCharacter::OnMoveForward(float Value)
 {
 	if ((Controller != NULL) && (Value != 0.0f))
 	{
-		// find out which way is forward
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		// get forward vector
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		AddMovementInput(Direction, Value);
+		if (GetMovementComponent()->IsFlying())
+		{
+			ApplyFlyMovementInput(EAxis::X, Value);
+		}
+		else
+		{
+			ApplyWalkMovementInput(EAxis::X, Value);
+		}
 	}
 }
 
-void AStoryModeProjectCharacter::MoveRight(float Value)
+void AStoryModeProjectCharacter::OnMoveRight(float Value)
 {
-	if ( (Controller != NULL) && (Value != 0.0f) )
+	if ((Controller != NULL) && (Value != 0.0f))
 	{
-		// find out which way is right
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-	
-		// get right vector 
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		// add movement in that direction
-		AddMovementInput(Direction, Value);
+		if (GetMovementComponent()->IsFlying())
+		{
+			ApplyFlyMovementInput(EAxis::Y, Value);
+		}
+		else
+		{
+			ApplyWalkMovementInput(EAxis::Y, Value);
+		}
 	}
+}
+
+void AStoryModeProjectCharacter::OnMoveUp(float Value)
+{
+	if ((Controller != NULL) && (Value != 0.0f) && GetMovementComponent()->IsFlying())
+	{
+		ApplyFlyMovementInput(EAxis::Z, Value);
+	}
+}
+
+void AStoryModeProjectCharacter::OnJump()
+{
+	Jump();
+
+	Server_ToggleFlyingMode();
+}
+
+void AStoryModeProjectCharacter::ApplyWalkMovementInput(EAxis::Type Axis, float Value)
+{
+	// find out which way is requested axis
+	const FRotator Rotation = Controller->GetControlRotation();
+	const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+	// get axis vector
+	const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(Axis);
+	// add movement in that direction
+	AddMovementInput(Direction, Value);
+}
+
+void AStoryModeProjectCharacter::ApplyFlyMovementInput(EAxis::Type Axis, float Value)
+{
+	const FRotator Rotation = Controller->GetControlRotation();
+
+	const FVector Direction = FRotationMatrix(Rotation).GetUnitAxis(Axis);
+	AddMovementInput(Direction, Value);
+}
+
+void AStoryModeProjectCharacter::OnDash(EAxis::Type Axis, float Value)
+{
+	const FRotator Rotation = Controller->GetControlRotation();
+
+	const FVector Direction = FRotationMatrix(Rotation).GetUnitAxis(EAxis::X);
+	if (!GetMovementComponent()->IsFlying())
+	{
+
+	}
+	LaunchCharacter(Direction * Value, true, true);
+}
+
+void AStoryModeProjectCharacter::OnResetVR()
+{
+	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
+}
+
+void AStoryModeProjectCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	Jump();
+}
+
+void AStoryModeProjectCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	StopJumping();
 }

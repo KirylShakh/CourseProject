@@ -29,28 +29,46 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Gameplay)
+	float DashVelocity = 1000.f;
+
 protected:
 
-	/** Resets HMD orientation in VR. */
-	void OnResetVR();
-
-	/** Called for forwards/backward input */
-	void MoveForward(float Value);
-
-	/** Called for side to side input */
-	void MoveRight(float Value);
-
-	/** 
-	 * Called via input to turn at a given rate. 
+	/**
+	 * Called via input to turn at a given rate.
 	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
 	 */
 	void TurnAtRate(float Rate);
 
 	/**
-	 * Called via input to turn look up/down at a given rate. 
+	 * Called via input to turn look up/down at a given rate.
 	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
 	 */
 	void LookUpAtRate(float Rate);
+
+	/** Called for forwards/backward input */
+	void OnMoveForward(float Value);
+
+	/** Called for side to side input */
+	void OnMoveRight(float Value);
+
+	/** Called for up/down input */
+	void OnMoveUp(float Value);
+
+	/** Manages jumping along with switching to flying mode */
+	void OnJump();
+
+	/** Evaluates walking movement input vector when walking by Yaw of Control rotation of the controller */
+	void ApplyWalkMovementInput(EAxis::Type Axis, float Value);
+
+	/** Evaluates flying movement input vector when walking by Control rotation of the controller */
+	void ApplyFlyMovementInput(EAxis::Type Axis, float Value);
+
+	UFUNCTION()
+	void OnDash(EAxis::Type Axis, float Value);
+
+	/** Resets HMD orientation in VR. */
+	void OnResetVR();
 
 	/** Handler for when a touch input begins. */
 	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
@@ -59,9 +77,18 @@ protected:
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
 protected:
+	virtual void BeginPlay() override;
+
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
+
+	void AddInputActionBinding(FInputActionHandlerSignature& Handler, FName ActionName);
+
+	UFUNCTION(Server, Reliable)
+	void Server_ToggleFlyingMode();
+
+	void Server_ToggleFlyingMode_Implementation();
 
 public:
 	/** Returns CameraBoom subobject **/

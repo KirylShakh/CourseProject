@@ -5,3 +5,15 @@ DerivedDataCache
 Intermediate
 Saved
 Content
+Plugins
+
+# Mocap ignores
+MCO_Mocap_Basics.png
+Source/FBX/
+Source/Maya/
+Source/Motionbuilder/
+Source/SKMannequin_A_Pose/
+Source/SKMannequin_T_Pose/
+Source/SK_Mannequin_A_Pose_README.txt
+Source/SK_Mannequin_T_Pose_README.txt
+Source/UE4_MocapOnline_Tech_Notes.txt
