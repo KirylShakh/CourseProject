@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "StoryModeProjectCharacter.h"
+#include "FlyerCharacterMovementComponent.h"
 
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Camera/CameraComponent.h"
@@ -14,7 +15,8 @@
 //////////////////////////////////////////////////////////////////////////
 // AStoryModeProjectCharacter
 
-AStoryModeProjectCharacter::AStoryModeProjectCharacter()
+AStoryModeProjectCharacter::AStoryModeProjectCharacter(const class FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer.SetDefaultSubobjectClass<UFlyerCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -62,43 +64,47 @@ void AStoryModeProjectCharacter::SetupPlayerInputComponent(class UInputComponent
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
 
-	if (GetLocalRole() >= ENetRole::ROLE_AutonomousProxy)
+	if (GetLocalRole() < ENetRole::ROLE_AutonomousProxy)
 	{
-		{
-			FInputActionHandlerSignature ActionHandler;
-			ActionHandler.BindUFunction(this, TEXT("OnDash"), EAxis::X, DashVelocity);
-			AddInputActionBinding(ActionHandler, TEXT("DashForward"));
-		}
-
-		{
-			FInputActionHandlerSignature ActionHandler;
-			ActionHandler.BindUFunction(this, TEXT("OnDash"), EAxis::X, -DashVelocity);
-			AddInputActionBinding(ActionHandler, TEXT("DashBack"));
-		}
-
-		PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AStoryModeProjectCharacter::OnJump);
-		PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
-
-		PlayerInputComponent->BindAxis("MoveForward", this, &AStoryModeProjectCharacter::OnMoveForward);
-		PlayerInputComponent->BindAxis("MoveRight", this, &AStoryModeProjectCharacter::OnMoveRight);
-		PlayerInputComponent->BindAxis("MoveUp", this, &AStoryModeProjectCharacter::OnMoveUp);
-
-		// Don't support anything but PC but let it be here for a while
-		// We have 2 versions of the rotation bindings to handle different kinds of devices differently
-		// "turn" handles devices that provide an absolute delta, such as a mouse.
-		// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
-		PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-		PlayerInputComponent->BindAxis("TurnRate", this, &AStoryModeProjectCharacter::TurnAtRate);
-		PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-		PlayerInputComponent->BindAxis("LookUpRate", this, &AStoryModeProjectCharacter::LookUpAtRate);
-
-		// handle touch devices
-		PlayerInputComponent->BindTouch(IE_Pressed, this, &AStoryModeProjectCharacter::TouchStarted);
-		PlayerInputComponent->BindTouch(IE_Released, this, &AStoryModeProjectCharacter::TouchStopped);
-
-		// VR headset functionality
-		PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AStoryModeProjectCharacter::OnResetVR);
+		return;
 	}
+
+	/*{
+		FInputActionHandlerSignature ActionHandler;
+		ActionHandler.BindUFunction(this, TEXT("OnDash"), EAxis::X, 1.f);
+		AddInputActionBinding(ActionHandler, TEXT("DashForward"));
+	}
+
+	{
+		FInputActionHandlerSignature ActionHandler;
+		ActionHandler.BindUFunction(this, TEXT("OnDash"), EAxis::X, -1.f);
+		AddInputActionBinding(ActionHandler, TEXT("DashBack"));
+	}*/
+
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AStoryModeProjectCharacter::OnJump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+
+	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &AStoryModeProjectCharacter::OnDash);
+
+	PlayerInputComponent->BindAxis("MoveForward", this, &AStoryModeProjectCharacter::OnMoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &AStoryModeProjectCharacter::OnMoveRight);
+	PlayerInputComponent->BindAxis("MoveUp", this, &AStoryModeProjectCharacter::OnMoveUp);
+
+	// Don't support anything but PC but let it be here for a while
+	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
+	// "turn" handles devices that provide an absolute delta, such as a mouse.
+	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
+	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("TurnRate", this, &AStoryModeProjectCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("LookUpRate", this, &AStoryModeProjectCharacter::LookUpAtRate);
+
+	// handle touch devices
+	PlayerInputComponent->BindTouch(IE_Pressed, this, &AStoryModeProjectCharacter::TouchStarted);
+	PlayerInputComponent->BindTouch(IE_Released, this, &AStoryModeProjectCharacter::TouchStopped);
+
+	// VR headset functionality
+	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AStoryModeProjectCharacter::OnResetVR);
 }
 
 void AStoryModeProjectCharacter::AddInputActionBinding(FInputActionHandlerSignature& Handler, FName ActionName)
@@ -107,24 +113,6 @@ void AStoryModeProjectCharacter::AddInputActionBinding(FInputActionHandlerSignat
 	ActionBinding.ActionDelegate = Handler;
 
 	InputComponent->AddActionBinding(ActionBinding);
-}
-
-void AStoryModeProjectCharacter::Server_ToggleFlyingMode_Implementation()
-{
-	UCharacterMovementComponent* CharacterMovementComponent = Cast<UCharacterMovementComponent>(GetMovementComponent());
-	if (CharacterMovementComponent)
-	{
-		// Check for 2nd time press so we are moved into flying mode
-		if (CharacterMovementComponent->IsFalling())
-		{
-			CharacterMovementComponent->SetMovementMode(EMovementMode::MOVE_Flying);
-		}
-		// If already if fly mode switch to fall again
-		else if (CharacterMovementComponent->IsFlying())
-		{
-			CharacterMovementComponent->SetMovementMode(EMovementMode::MOVE_Falling);
-		}
-	}
 }
 
 void AStoryModeProjectCharacter::TurnAtRate(float Rate)
@@ -181,7 +169,14 @@ void AStoryModeProjectCharacter::OnJump()
 {
 	Jump();
 
-	Server_ToggleFlyingMode();
+	UFlyerCharacterMovementComponent* MoveCmp = Cast<UFlyerCharacterMovementComponent>(GetMovementComponent());
+	if (MoveCmp)
+	{
+		if (MoveCmp->IsFalling() || MoveCmp->IsFlying())
+		{
+			MoveCmp->Fly();
+		}
+	}
 }
 
 void AStoryModeProjectCharacter::ApplyWalkMovementInput(EAxis::Type Axis, float Value)
@@ -204,16 +199,13 @@ void AStoryModeProjectCharacter::ApplyFlyMovementInput(EAxis::Type Axis, float V
 	AddMovementInput(Direction, Value);
 }
 
-void AStoryModeProjectCharacter::OnDash(EAxis::Type Axis, float Value)
+void AStoryModeProjectCharacter::OnDash()
 {
-	const FRotator Rotation = Controller->GetControlRotation();
-
-	const FVector Direction = FRotationMatrix(Rotation).GetUnitAxis(EAxis::X);
-	if (!GetMovementComponent()->IsFlying())
+	UFlyerCharacterMovementComponent* MoveCmp = Cast<UFlyerCharacterMovementComponent>(GetMovementComponent());
+	if (MoveCmp)
 	{
-
+		MoveCmp->Dash();
 	}
-	LaunchCharacter(Direction * Value, true, true);
 }
 
 void AStoryModeProjectCharacter::OnResetVR()

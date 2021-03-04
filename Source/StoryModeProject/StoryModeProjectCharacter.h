@@ -19,7 +19,7 @@ class AStoryModeProjectCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
 public:
-	AStoryModeProjectCharacter();
+	AStoryModeProjectCharacter(const class FObjectInitializer& ObjectInitializer);
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
@@ -28,9 +28,6 @@ public:
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Gameplay)
-	float DashVelocity = 1000.f;
 
 protected:
 
@@ -64,8 +61,7 @@ protected:
 	/** Evaluates flying movement input vector when walking by Control rotation of the controller */
 	void ApplyFlyMovementInput(EAxis::Type Axis, float Value);
 
-	UFUNCTION()
-	void OnDash(EAxis::Type Axis, float Value);
+	void OnDash();
 
 	/** Resets HMD orientation in VR. */
 	void OnResetVR();
@@ -84,11 +80,6 @@ protected:
 	// End of APawn interface
 
 	void AddInputActionBinding(FInputActionHandlerSignature& Handler, FName ActionName);
-
-	UFUNCTION(Server, Reliable)
-	void Server_ToggleFlyingMode();
-
-	void Server_ToggleFlyingMode_Implementation();
 
 public:
 	/** Returns CameraBoom subobject **/
