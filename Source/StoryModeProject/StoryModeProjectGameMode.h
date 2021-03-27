@@ -13,6 +13,21 @@ class AStoryModeProjectGameMode : public AGameModeBase
 
 public:
 	AStoryModeProjectGameMode();
+
+	void PlayerKilled(class AStoryModeProjectCharacter* KillerCharacter);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnPlayerDied(class AStoryModeProjectCharacter* Killer, class AStoryModeProjectCharacter* Victim);
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Game)
+	int32 RespawnTime = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Game)
+	int32 GoalKillCount = 10;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnEndRound(class AStoryModeProjectPlayerState* Winner);
 };
 
 

@@ -24,11 +24,17 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_Avatar, EditAnywhere, BlueprintReadWrite)
 	UTexture2D* Avatar;
 
-	UPROPERTY(Replicated, BlueprintReadWrite)
+	UPROPERTY(ReplicatedUsing = OnRep_CharacterClass, EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<class AStoryModeProjectCharacter> CharacterClass;
+
+	UPROPERTY(ReplicatedUsing = OnRep_KillCount, BlueprintReadWrite)
 	int32 KillCount = 0;
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnUIDataChanged();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnCharacterClassChanged();
 
 protected:
 	UFUNCTION()
@@ -36,4 +42,17 @@ protected:
 
 	UFUNCTION()
 	virtual void OnRep_Avatar();
+
+	UFUNCTION()
+	virtual void OnRep_KillCount();
+
+	UFUNCTION()
+	virtual void OnRep_CharacterClass();
+
+	// Used to copy properties from the current PlayerState to the passed one
+	virtual void CopyProperties(APlayerState* PlayerState) override;
+	// Used to override the current PlayerState with the properties of the passed one
+	virtual void OverrideWith(APlayerState* PlayerState) override;
+
+	void CopyInto(AStoryModeProjectPlayerState* PlayerState);
 };

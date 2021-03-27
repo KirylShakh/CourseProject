@@ -4,10 +4,28 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "AbilitySystemInterface.h"
+#include "GameplayTagContainer.h"
 #include "StoryModeProjectCharacter.generated.h"
 
+USTRUCT(BlueprintType, Category = Gameplay)
+struct FFiringInfo
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadOnly)
+	bool bFiring = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	TSubclassOf<class AWeaponActor> WeaponClass;
+};
+
+/**
+ *
+ */
 UCLASS(config=Game)
-class AStoryModeProjectCharacter : public ACharacter
+class AStoryModeProjectCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -18,6 +36,10 @@ class AStoryModeProjectCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Abilities, meta = (AllowPrivateAccess = "true"))
+	class UArrowComponent* MuzzlePoint;
+
 public:
 	AStoryModeProjectCharacter(const class FObjectInitializer& ObjectInitializer);
 
@@ -28,6 +50,20 @@ public:
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
+
+	UPROPERTY(VisibleAnywhere)
+	class UAbilitySystemComponent* AbilitySystemComponent;
+
+	const class UFlyerAttributeSet* AttributeSet;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Abilities)
+	TArray<TSubclassOf<class UGameplayAbility>> GameplayAbilities;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Abilities)
+	FGameplayTagContainer FireTags;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Abilities)
+	FGameplayTagContainer ChargedTags;
 
 protected:
 
@@ -63,6 +99,24 @@ protected:
 
 	void OnDash();
 
+	/** Handler for when an aim input begins. */
+	void OnStartAiming();
+
+	/** Handler for when an aim input stops. */
+	void OnStopAiming();
+
+	/** Handler for when a fire input begins. */
+	void OnStartFiring();
+
+	/** Handler for when a fire input stops. */
+	void OnStopFiring();
+
+	/** Handler for when a shield input begins. */
+	void OnStartShielding();
+
+	/** Handler for when a shield input stops. */
+	void OnStopShielding();
+
 	/** Resets HMD orientation in VR. */
 	void OnResetVR();
 
@@ -81,10 +135,116 @@ protected:
 
 	void AddInputActionBinding(FInputActionHandlerSignature& Handler, FName ActionName);
 
+	// Health Stuff
+	UPROPERTY(ReplicatedUsing = OnRep_Health, BlueprintReadOnly, Category = Gameplay)
+	float Health;
+
+	UFUNCTION()
+	virtual void OnRep_Health();
+
+	void OnHealthUpdate();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnHealthUpdated();
+
+	UPROPERTY(BlueprintReadOnly, Category = Gameplay)
+	bool bDead = false;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnDied();
+
+	// Aiming Stuff
+	UPROPERTY(ReplicatedUsing = OnRep_Aiming, BlueprintReadOnly, Category = Gameplay)
+	bool bAiming = false;
+
+	UFUNCTION()
+	virtual void OnRep_Aiming();
+
+	void OnAimingUpdate();
+
+	UFUNCTION(Server, Reliable)
+	void Server_Aim(bool bWantsToAim);
+
+	void Server_Aim_Implementation(bool bWantsToAim);
+
+	bool CanMove();
+
+	// Firing Stuff
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float AimRange = 20000.f;
+
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void Server_ActivateAbility(int32 InputCode);
+
+	void Server_ActivateAbility_Implementation(int32 InputCode);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void Server_DeactivateAbility(int32 InputCode);
+
+	void Server_DeactivateAbility_Implementation(int32 InputCode);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void Server_CancelAbility(const FGameplayTagContainer CancelWithTags);
+
+	void Server_CancelAbility_Implementation(const FGameplayTagContainer CancelWithTags);
+
+	/** Camera location to simulate projectiles for simulated proxies */
+	UPROPERTY(Replicated)
+	FVector RepCameraLocation;
+
+	/** Camera forward vector to simulate projectiles for simulated proxies */
+	UPROPERTY(Replicated)
+	FVector RepCameraForwardVector;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Firing, BlueprintReadOnly, Category = Gameplay)
+	FFiringInfo FiringInfo;
+
+	UFUNCTION()
+	virtual void OnRep_Firing();
+
+	UFUNCTION(BlueprintCallable)
+	void Server_FireWeapon(TSubclassOf<class AWeaponActor> WeaponCls);
+
+	UFUNCTION(BlueprintCallable)
+	void Server_DropWeapon();
+
+	UPROPERTY(BlueprintReadOnly, Category = Gameplay)
+	class AWeaponActor* Weapon;
+
+	UFUNCTION(BlueprintCallable)
+	virtual AWeaponActor* SpawnWeapon();
+
 public:
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-};
 
+	/** Property replication */
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	// Implement IAbilitySystemInterface
+	UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	UFUNCTION(BlueprintCallable, Category = Gameplay)
+	float GetHealth() const;
+
+	UFUNCTION(BlueprintCallable, Category = Gameplay)
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	UFUNCTION(BlueprintCallable, Category = Abilities)
+	void ActivateAbility(int32 InputCode);
+
+	UFUNCTION(BlueprintCallable, Category = Abilities)
+	void DeactivateAbility(int32 InputCode);
+
+	UFUNCTION(BlueprintCallable, Category = Abilities)
+	void CancelAbility(const FGameplayTagContainer CancelWithTags);
+
+	UFUNCTION(BlueprintCallable)
+	FHitResult GetAimHitResult();
+
+	const FVector GetMuzzlePoint();
+
+	void ShieldDestroyed();
+};

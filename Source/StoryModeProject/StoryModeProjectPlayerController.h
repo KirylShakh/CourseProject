@@ -6,6 +6,26 @@
 #include "GameFramework/PlayerController.h"
 #include "StoryModeProjectPlayerController.generated.h"
 
+USTRUCT(BlueprintType)
+struct FPlayerInfo
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite)
+	FText Name;
+
+	UPROPERTY(BlueprintReadWrite)
+	UTexture2D* Avatar;
+
+	UPROPERTY(BlueprintReadWrite)
+	int32 KillCount;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector2D ScreenLocation;
+};
+
+
 /**
  * 
  */
@@ -14,4 +34,7 @@ class STORYMODEPROJECT_API AStoryModeProjectPlayerController : public APlayerCon
 {
 	GENERATED_BODY()
 	
+public:
+	UFUNCTION(BlueprintCallable)
+	TArray<FPlayerInfo> EnemyInfo();
 };
