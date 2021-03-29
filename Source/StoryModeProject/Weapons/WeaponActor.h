@@ -36,4 +36,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	virtual float GetDamage();
+
+	virtual void HitByOtherWeapon(AWeaponActor* OtherWeapon);
 };

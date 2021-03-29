@@ -35,3 +35,7 @@ float AWeaponActor::GetDamage()
 {
 	return Damage;
 }
+
+void AWeaponActor::HitByOtherWeapon(AWeaponActor* OtherWeapon)
+{
+}

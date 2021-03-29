@@ -9,8 +9,6 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 
-//#include "Kismet/KismetMathLibrary.h"
-
 // Sets default values
 AShrapnelMissileActor::AShrapnelMissileActor()
 {
@@ -52,7 +50,7 @@ void AShrapnelMissileActor::BeginPlay()
 
 void AShrapnelMissileActor::OnTrigger_Implementation(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor == GetOwner() || Cast<AWeaponActor>(OtherActor))
+	if (OtherActor == GetOwner())
 	{
 		return;
 	}
@@ -88,8 +86,6 @@ void AShrapnelMissileActor::Tick(float DeltaTime)
 		AStoryModeProjectCharacter* Character = Cast<AStoryModeProjectCharacter>(GetOwner());
 		if (Character)
 		{
-			//const FRotator Rotation = Character->Controller->GetControlRotation();
-			//const FVector Direction = FRotationMatrix(Rotation).GetUnitAxis(EAxis::Z);
 			const FVector Direction = FVector::UpVector;
 			const FVector OwnerDelta = Character->GetMuzzlePoint() - OwnerLastLocation;
 			const float Speed = LaunchSpeed * (LaunchTime - TimePassed) / LaunchTime;

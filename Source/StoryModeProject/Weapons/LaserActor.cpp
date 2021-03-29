@@ -88,6 +88,14 @@ void ALaserActor::Tick(float DeltaTime)
 					bTimerActive = true;
 					GetWorldTimerManager().SetTimer(DamageTickTimerHandle, this, &ALaserActor::OnDamageTickTimerCompleted, DamageTickDuration, false, -1.f);
 				}
+				else
+				{
+					AWeaponActor* WeaponActor = Cast<AWeaponActor>(Hit.GetActor());
+					if (WeaponActor)
+					{
+						WeaponActor->HitByOtherWeapon(this);
+					}
+				}
 			}
 		}
 	}

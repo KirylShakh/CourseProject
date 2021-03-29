@@ -21,7 +21,10 @@ public:
 	class USceneComponent* SceneComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-	class UCapsuleComponent* CapsuleComponent;
+	class UBoxComponent* BoxComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	class UStaticMeshComponent* Mesh;
 
 protected:
 	virtual void BeginPlay() override;
@@ -45,4 +48,6 @@ protected:
 
 public:
 	virtual void Tick(float DeltaTime) override;
+
+	virtual void HitByOtherWeapon(AWeaponActor* OtherWeapon) override;
 };
