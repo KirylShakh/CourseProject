@@ -12,9 +12,9 @@ AStoryModeProjectGameMode::AStoryModeProjectGameMode()
 
 void AStoryModeProjectGameMode::PlayerKilled(AStoryModeProjectCharacter* KillerCharacter)
 {
-	AStoryModeProjectPlayerState* KillerPlayerState = Cast<AStoryModeProjectPlayerState>(KillerCharacter->GetPlayerState());
-	if (KillerPlayerState && KillerPlayerState->KillCount >= GoalKillCount)
+	FPlayerInfo PlayerInfo = KillerCharacter->GetPlayerInfo();
+	if (PlayerInfo.KillCount >= GoalKillCount)
 	{
-		OnEndRound(KillerPlayerState);
+		OnEndRound(PlayerInfo);
 	}
 }

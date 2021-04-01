@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayTagContainer.h"
+#include "PlayerInfo.h"
 #include "StoryModeProjectCharacter.generated.h"
 
 USTRUCT(BlueprintType, Category = Gameplay)
@@ -89,14 +90,16 @@ protected:
 	void OnMoveUp(float Value);
 
 	/** Manages jumping along with switching to flying mode */
+	UFUNCTION(BlueprintCallable)
 	void OnJump();
 
 	/** Evaluates walking movement input vector when walking by Yaw of Control rotation of the controller */
 	void ApplyWalkMovementInput(EAxis::Type Axis, float Value);
 
-	/** Evaluates flying movement input vector when walking by Control rotation of the controller */
+	/** Evaluates flying movement input vector when wsalking by Control rotation of the controller */
 	void ApplyFlyMovementInput(EAxis::Type Axis, float Value);
 
+	UFUNCTION(BlueprintCallable)
 	void OnDash();
 
 	/** Handler for when an aim input begins. */
@@ -151,7 +154,10 @@ protected:
 	bool bDead = false;
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnDied();
+	void OnDied(bool bFromEnvironment = false);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnKill();
 
 	// Aiming Stuff
 	UPROPERTY(ReplicatedUsing = OnRep_Aiming, BlueprintReadOnly, Category = Gameplay)
@@ -247,4 +253,7 @@ public:
 	const FVector GetMuzzlePoint();
 
 	void ShieldDestroyed();
+
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	FPlayerInfo GetPlayerInfo() const;
 };

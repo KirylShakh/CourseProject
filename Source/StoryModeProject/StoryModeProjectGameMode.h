@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "PlayerInfo.h"
 #include "StoryModeProjectGameMode.generated.h"
 
 UCLASS(minimalapi)
@@ -26,8 +27,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Game)
 	int32 GoalKillCount = 10;
 
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnEndRound(class AStoryModeProjectPlayerState* Winner);
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	void OnEndRound(FPlayerInfo Winner);
 };
 
 

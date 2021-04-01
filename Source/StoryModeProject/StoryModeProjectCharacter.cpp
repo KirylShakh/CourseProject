@@ -104,12 +104,18 @@ float AStoryModeProjectCharacter::TakeDamage(float DamageAmount, FDamageEvent co
 				if (KillerPlayerState)
 				{
 					KillerPlayerState->KillCount += 1;
-					AStoryModeProjectGameMode* GameMode = Cast<AStoryModeProjectGameMode>(GetWorld()->GetAuthGameMode());
-					if (GameMode)
-					{
-						GameMode->PlayerKilled(KilledBy);
-					}
 				}
+				else
+				{
+					KilledBy->OnKill();
+				}
+
+				AStoryModeProjectGameMode* GameMode = Cast<AStoryModeProjectGameMode>(GetWorld()->GetAuthGameMode());
+				if (GameMode)
+				{
+					GameMode->PlayerKilled(KilledBy); // check if killer has won
+				}
+				OnDied();
 			}
 			else
 			{
@@ -118,12 +124,13 @@ float AStoryModeProjectCharacter::TakeDamage(float DamageAmount, FDamageEvent co
 				{
 					SelfPlayerState->KillCount -= 1;
 				}
+				OnDied(true);
 			}
 
 			AStoryModeProjectGameMode* GameMode = Cast<AStoryModeProjectGameMode>(GetWorld()->GetAuthGameMode());
 			if (GameMode)
 			{
-				GameMode->OnPlayerDied(KilledBy, this);
+				GameMode->OnPlayerDied(KilledBy, this); // handle respawning
 			}
 		}
 
@@ -168,8 +175,6 @@ void AStoryModeProjectCharacter::OnHealthUpdate()
 		GetMesh()->SetPhysicsBlendWeight(1.f);
 
 		GetMesh()->WakeAllRigidBodies();
-
-		OnDied();
 	}
 
 	if (GetLocalRole() >= ENetRole::ROLE_AutonomousProxy)
@@ -547,58 +552,25 @@ void AStoryModeProjectCharacter::OnStartFiring()
 		{
 			if (bAiming)
 			{
-				// Charge and fire explosive missile
+				// Charge and fire explosive missile - be laser instead
+				Server_ActivateAbility(0);
 			}
 			else
 			{
-				// Heal up? or some low range rapid attack
+				// Heal up? or some low range rapid attack - same as flying instead
+				Server_ActivateAbility(1);
 			}
 		}
 		else if (MoveCmp->IsFalling())
 		{
 			// Come up with something
+			Server_ActivateAbility(0);
 		}
 	}
 }
 
 void AStoryModeProjectCharacter::OnStopFiring()
 {
-	// Drop current WeaponClass so player can wait for the proper update
-	//WeaponClass = nullptr;
-
-	/*{
-		FGameplayTagContainer Tags;
-		if (!bAiming)
-		{
-			FGameplayTag Tag = FGameplayTag::RequestGameplayTag(TEXT("Ability.Stationary"), false);
-			if (Tag.IsValid())
-			{
-				Tags.AddTag(Tag);
-			}
-		}
-
-		UFlyerCharacterMovementComponent* MoveCmp = Cast<UFlyerCharacterMovementComponent>(GetMovementComponent());
-		if (MoveCmp)
-		{
-			if (!MoveCmp->IsFlying())
-			{
-				FGameplayTag Tag = FGameplayTag::RequestGameplayTag(TEXT("Ability.Flying"), false);
-				if (Tag.IsValid())
-				{
-					Tags.AddTag(Tag);
-				}
-			}
-			if (!MoveCmp->IsWalking())
-			{
-				FGameplayTag Tag = FGameplayTag::RequestGameplayTag(TEXT("Ability.Ground"), false);
-				if (Tag.IsValid())
-				{
-					Tags.AddTag(Tag);
-				}
-			}
-		}
-	}*/
-
 	// Stop active firing ability
 	Server_CancelAbility(FireTags);
 }

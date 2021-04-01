@@ -23,17 +23,10 @@ TArray<FPlayerInfo> AStoryModeProjectPlayerController::EnemyInfo()
                 AStoryModeProjectCharacter* Enemy = GameState->PlayerArray[i]->GetPawn<AStoryModeProjectCharacter>();
                 if (Enemy && Enemy != GetPawn<AStoryModeProjectCharacter>())
                 {
-                    AStoryModeProjectPlayerState* State = Cast<AStoryModeProjectPlayerState>(GameState->PlayerArray[i]);
-                    if (State)
-                    {
-                        FPlayerInfo Info;
-                        Info.Avatar = State->Avatar;
-                        Info.Name = State->Name;
-                        Info.KillCount = State->KillCount;
-                        ProjectWorldLocationToScreen(Enemy->GetMuzzlePoint(), Info.ScreenLocation);
+                    FPlayerInfo Info = Enemy->GetPlayerInfo();
+                    ProjectWorldLocationToScreen(Enemy->GetMuzzlePoint(), Info.ScreenLocation);
 
-                        Result.Add(Info);
-                    }
+                    Result.Add(Info);
                 }
             }
 
@@ -42,10 +35,7 @@ TArray<FPlayerInfo> AStoryModeProjectPlayerController::EnemyInfo()
                 AStoryModeProjectCharacter* Enemy = Cast<AStoryModeProjectCharacter>(GameState->Bots[i]);
                 if (Enemy && Enemy != GetPawn<AStoryModeProjectCharacter>())
                 {
-                    FPlayerInfo Info;
-                    Info.Avatar = nullptr;
-                    Info.Name = FText();
-                    Info.KillCount = 0;
+                    FPlayerInfo Info = Enemy->GetPlayerInfo();
                     ProjectWorldLocationToScreen(Enemy->GetMuzzlePoint(), Info.ScreenLocation);
 
                     Result.Add(Info);
