@@ -145,6 +145,11 @@ void AStoryModeProjectCharacter::ShieldDestroyed()
 	OnStopShielding();
 }
 
+bool AStoryModeProjectCharacter::IsDead() const
+{
+	return bDead;
+}
+
 void AStoryModeProjectCharacter::OnRep_Health()
 {
 	OnHealthUpdate();
@@ -563,8 +568,8 @@ void AStoryModeProjectCharacter::OnStartFiring()
 		}
 		else if (MoveCmp->IsFalling())
 		{
-			// Come up with something
-			Server_ActivateAbility(0);
+			// Come up with something - Same plasma ball
+			Server_ActivateAbility(1);
 		}
 	}
 }

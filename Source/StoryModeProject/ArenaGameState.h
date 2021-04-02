@@ -20,4 +20,7 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayerList)
 	TArray<class AStoryModeProjectCharacter*> Bots;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayerList)
+	TArray<class AStoryModeProjectPlayerState*> Players;
 };

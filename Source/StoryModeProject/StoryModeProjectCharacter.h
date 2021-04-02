@@ -256,4 +256,6 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	FPlayerInfo GetPlayerInfo() const;
+
+	bool IsDead() const;
 };

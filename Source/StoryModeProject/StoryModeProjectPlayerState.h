@@ -21,7 +21,7 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_Name, EditAnywhere, BlueprintReadWrite)
 	FText Name;
 
-	UPROPERTY(ReplicatedUsing = OnRep_Avatar, EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UTexture2D* Avatar;
 
 	UPROPERTY(ReplicatedUsing = OnRep_CharacterClass, EditAnywhere, BlueprintReadWrite)
@@ -39,9 +39,6 @@ public:
 protected:
 	UFUNCTION()
 	virtual void OnRep_Name();
-
-	UFUNCTION()
-	virtual void OnRep_Avatar();
 
 	UFUNCTION()
 	virtual void OnRep_KillCount();

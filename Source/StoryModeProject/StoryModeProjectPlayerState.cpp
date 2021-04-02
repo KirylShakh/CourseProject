@@ -10,17 +10,11 @@ void AStoryModeProjectPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimePr
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	// Here we list the variables we want to replicate + a condition if wanted
 	DOREPLIFETIME(AStoryModeProjectPlayerState, Name);
-	DOREPLIFETIME(AStoryModeProjectPlayerState, Avatar);
 	DOREPLIFETIME(AStoryModeProjectPlayerState, CharacterClass);
 	DOREPLIFETIME(AStoryModeProjectPlayerState, KillCount);
 }
 
 void AStoryModeProjectPlayerState::OnRep_Name()
-{
-	OnUIDataChanged();
-}
-
-void AStoryModeProjectPlayerState::OnRep_Avatar()
 {
 	OnUIDataChanged();
 }

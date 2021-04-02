@@ -9,5 +9,6 @@ void AArenaGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(AArenaGameState, Players);
 	DOREPLIFETIME(AArenaGameState, Bots);
 }

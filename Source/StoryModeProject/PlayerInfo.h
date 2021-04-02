@@ -12,14 +12,14 @@ struct FPlayerInfo
 
 public:
 	UPROPERTY(BlueprintReadWrite)
-	FText Name;
+	FText Name = FText();
 
 	UPROPERTY(BlueprintReadWrite)
-	UTexture2D* Avatar;
+	UTexture2D* Avatar = nullptr;
 
 	UPROPERTY(BlueprintReadWrite)
-	int32 KillCount;
+	int32 KillCount = 0;
 
 	UPROPERTY(BlueprintReadWrite)
-	FVector2D ScreenLocation;
+	FVector2D ScreenLocation = FVector2D(0.f);
 };
